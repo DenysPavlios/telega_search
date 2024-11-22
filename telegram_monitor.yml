@@ -1,0 +1,40 @@
+name: Telegram Monitor
+
+on:
+  workflow_dispatch: # Запуск вручную
+  schedule:          # Запуск по расписанию
+    - cron: "0 */4 * * *" # Каждые 4 часа
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Chrome and ChromeDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+          wget -O chromedriver.zip https://chromedriver.storage.googleapis.com/$(google-chrome --version | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | sed -e "s/\.[0-9]*$//")/chromedriver_linux64.zip
+          unzip chromedriver.zip
+          sudo mv chromedriver /usr/local/bin/
+
+      - name: Run Telegram Monitor
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        run: |
+          test_tg_bot.py
